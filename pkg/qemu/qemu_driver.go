@@ -41,6 +41,13 @@ type LimaQemuDriver struct {
 }
 
 func New(driver *driver.BaseDriver) *LimaQemuDriver {
+	driver.VSockPort = 0
+	driver.VirtioPort = filenames.VirtioPort
+	// virtserialport doesn't seem to work reliably: https://github.com/lima-vm/lima/issues/2064
+	// but on Windows default Unix socket forwarding is not available
+	if runtime.GOOS != "windows" {
+		driver.VirtioPort = ""
+	}
 	return &LimaQemuDriver{
 		BaseDriver: driver,
 	}
@@ -77,6 +84,7 @@ func (l *LimaQemuDriver) Start(ctx context.Context) (chan error, error) {
 		LimaYAML:     l.Instance.Config,
 		SSHLocalPort: l.SSHLocalPort,
 		SSHAddress:   l.Instance.SSHAddress,
+		VirtioGA:     l.VirtioPort != "",
 	}
 	qExe, qArgs, err := Cmdline(ctx, qCfg)
 	if err != nil {
